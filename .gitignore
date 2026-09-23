@@ -1,0 +1,14 @@
+# Foundry
+out/
+cache/
+broadcast/
+lib/
+
+# Secrets - the single most important line in this file
+.env
+.env*.local
+
+# Node / Next
+node_modules/
+.next/
+.DS_Store
