@@ -55,14 +55,63 @@ Copy `.env.example` → `.env` and paste the private key in.
 > **This wallet is disposable.** Never put real funds in it. Never reuse a key
 > you have used anywhere else. `.env` is gitignored — keep it that way.
 
-### 4. Get test AVAX
+### 4. Get a browser wallet
 
-- `https://faucet.avax.network` — use coupon code `avalanche-academy25` if it
-  asks for a mainnet balance you don't have
-- Fallback: `https://faucet.quicknode.com/avalanche` (no account, no mainnet balance)
+You need a wallet extension in Chrome for two reasons: the faucet will not run
+without one, and your own frontend's Connect button is dead without one. Install
+**Core** - Avalanche's own wallet, with Fuji built in so there is no manual
+network config:
 
-Faucets rate-limit to roughly once per 12–24h, so **do this before Saturday**,
-not at 10:45 on the day.
+`https://chrome.google.com/webstore/detail/core/agoakfejjabomempkjlepdflaleeobhb`
+
+Create a wallet, then turn on **Settings -> Advanced -> Testnet Mode**.
+
+> Core cannot import a private key during onboarding - it only offers a recovery
+> phrase or a Ledger. Private-key import lives *inside* the extension afterwards
+> (account name -> the dropdown arrow beside "Create Account" -> Import Private
+> Key). Simpler: skip importing and forward the funds instead, as below.
+
+### 5. Get test AVAX
+
+Sign in at `https://build.avax.network` (a Builder Hub account is an event
+prerequisite anyway), then open the console faucet:
+
+`https://build.avax.network/console/primary-network/faucet`
+
+Connect Core and request on **C-Chain**. It drips 0.5 AVAX. Its three
+requirements are wallet detected, wallet connected, and a Builder Hub account -
+**no mainnet balance**, which is what makes it the one that works.
+
+The faucet pays whichever account Core has active, which is probably *not* the
+wallet in `.env`. Forward it, because `.env` is what `forge` deploys from:
+
+Core -> **Send** -> your `.env` address -> 0.45 AVAX -> Avalanche C-Chain.
+
+Confirm it landed:
+
+```bash
+cast balance <your .env address> --rpc-url fuji --ether
+```
+
+**Routes that do not work** (all tried, Sep 2026):
+
+| Route | Outcome |
+|---|---|
+| `faucet.avax.network` | redirects to Core's faucet, which wants 0.01 AVAX on *mainnet* |
+| coupon `avalanche-academy25` | expired |
+| `faucet.quicknode.com/avalanche` | "Invalid ETH mainnet balance" - a fresh wallet can never pass this |
+
+The mainnet-balance check is the recurring trap: it is an anti-bot measure, and
+a wallet you generated an hour ago can never satisfy it. Pick a faucet that
+gates on a captcha or a login instead.
+
+Fallbacks that accept a pasted address with no balance check:
+`faucet.zalalena.com/avalanche`, `thirdweb.com/avalanche-fuji`, and
+`faucets.chain.link/fuji` (0.5 AVAX, but requires connecting a wallet).
+
+0.5 AVAX is enormously more than enough - a deploy on Fuji costs around
+0.0000000001 AVAX. Faucets rate-limit to roughly once per 12-24h, so **do this
+before Saturday**, not at 10:45 on the day.
 
 ---
 
@@ -144,7 +193,7 @@ read the history off-chain.
 
 You are a working web developer in a room that skews student. Most teams will
 have a contract that works and a UI that looks unfinished. The judges see a
-**3-minute demo + 2 min Q&A** — they are reacting to whether it works and
+**3-minute demo + 3 min Q&A** — they are reacting to whether it works and
 whether the idea lands, not to contract elegance.
 
 Budget roughly: **90 min on-chain, the rest on product and polish.**
@@ -164,7 +213,7 @@ interface — so if your frontend breaks on stage, you still have a live demo.
 You may enter more than one, and overall winners still qualify for a track
 prize. With ~55 attendees across six tracks, a **track prize ($50) is a far
 more realistic target than 1st place**. The "best content post" prize
-($25 × 2) is close to free money — post a build thread on X during the day.
+($50) is close to free money — post a build thread on X during the day.
 
 ---
 
