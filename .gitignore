@@ -2,7 +2,7 @@
 out/
 cache/
 broadcast/
-
+/lib/
 
 # Secrets - the single most important line in this file
 .env
