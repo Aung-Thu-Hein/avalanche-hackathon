@@ -3,8 +3,8 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TipJar",
-  description: "Avalanche Fuji starter",
+  title: "SafeHold",
+  description: "Know before you hold.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
