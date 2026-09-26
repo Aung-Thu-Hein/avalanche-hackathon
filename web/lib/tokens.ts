@@ -204,3 +204,28 @@ export const coverage = {
   known: (tokenIndex.count as number) ?? 0,
   freeCount: FREE_SYMBOLS.length,
 };
+
+// ---------------------------------------------------------------------------
+// Board view (the full table)
+// ---------------------------------------------------------------------------
+
+/**
+ * One table row. For non-Pro callers, locked tokens keep their identity (so the
+ * row can render, blurred) but lose every derived number - the browser never
+ * receives data it could un-blur.
+ */
+export type PublicToken =
+  | (ScoredToken & { locked: false })
+  | (Pick<ScoredToken, "id" | "symbol" | "name" | "category" | "mock" | "marketCap"> & { locked: true });
+
+export function toPublic(t: ScoredToken, isPro: boolean): PublicToken {
+  if (isPro || isFreeSymbol(t.symbol)) return { ...t, locked: false };
+  return { id: t.id, symbol: t.symbol, name: t.name, category: t.category, mock: t.mock, marketCap: t.marketCap, locked: true };
+}
+
+/** Every tracked token, soonest unlock first, gated for this caller. */
+export function boardTokens(isPro: boolean, now = Date.now()): PublicToken[] {
+  return allTokens(now)
+    .sort((a, b) => (a.nextUnlock?.daysUntil ?? 9999) - (b.nextUnlock?.daysUntil ?? 9999))
+    .map((t) => toPublic(t, isPro));
+}

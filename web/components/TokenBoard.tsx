@@ -9,7 +9,7 @@ import { fmtDate, fmtPct, fmtUsd } from "@/lib/format";
 import { Countdown } from "@/components/Visuals";
 import { Robot } from "@/components/Robot";
 
-type Meta = { isPro: boolean; freeCount: number; count: number };
+type Meta = { isPro: boolean; count: number; coverage: { freeCount: number } };
 type SortKey = "soonest" | "risk" | "mcap";
 
 // Stand-ins rendered under the blur. Deliberately fake - locked rows never
@@ -34,7 +34,7 @@ export function TokenBoard() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/tokens${pro.address ? `?address=${pro.address}` : ""}`)
+    fetch(`/api/tokens?view=board${pro.address ? `&address=${pro.address}` : ""}`)
       .then((r) => r.json())
       .then((j) => {
         if (cancelled) return;
@@ -125,9 +125,10 @@ export function TokenBoard() {
           className="g-input"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search 40 tokens by name or symbol"
+          placeholder={`Search ${meta?.count ?? ""} tokens by name or symbol`}
           aria-label="Search tokens"
         />
+        {categories.length > 2 && (
         <div className="chips" role="tablist" aria-label="Category">
           {categories.map((c) => (
             <button key={c} role="tab" aria-selected={cat === c} className={cat === c ? "chip chip-on" : "chip"} onClick={() => setCat(c)}>
@@ -135,6 +136,7 @@ export function TokenBoard() {
             </button>
           ))}
         </div>
+        )}
         <select className="g-select" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Sort">
           <option value="soonest">Soonest unlock</option>
           <option value="risk">Highest risk</option>
@@ -203,7 +205,7 @@ export function TokenBoard() {
       </section>
 
       <p className="board-foot">
-        Tokens marked “Demo” use generated sample data. AVAX, GUN and 2Z come from a Tokenomist snapshot.
+        Unlock data from a cached Tokenomist snapshot. Scores update daily.
       </p>
 
       {/* --------------------------------------------------------- drawer */}
