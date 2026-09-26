@@ -108,3 +108,62 @@ code {
 @media (max-width: 420px) {
   .stats { grid-template-columns: 1fr; }
 }
+
+/* ---------------------------------------------------------------- SafeHold */
+
+.tagline { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+
+.search {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+.search input { text-transform: uppercase; }
+
+.demo-hint { margin: 10px 0 0; font-size: 12px; }
+
+/* The score block - the thing judges look at. Big number, one sentence. */
+.score {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 20px 0 0;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #0f1317;
+  border-left: 4px solid var(--band, var(--muted));
+}
+.score-safe  { --band: var(--ok); }
+.score-watch { --band: #fbbf24; }
+.score-risk  { --band: var(--err); }
+
+.score-number {
+  font-size: 54px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--band);
+  font-variant-numeric: tabular-nums;
+  min-width: 84px;
+  text-align: center;
+}
+
+.score-text { display: grid; gap: 3px; min-width: 0; }
+.score-sym { font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; }
+.score-headline { font-size: 17px; font-weight: 600; }
+.score-detail { color: var(--muted); font-size: 13px; }
+.muted { color: var(--muted); text-transform: none; letter-spacing: 0; }
+
+.pro {
+  margin: 22px 0 0;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+}
+.pro button.primary { width: 100%; }
+
+@media (max-width: 420px) {
+  .score { gap: 14px; padding: 16px; }
+  .score-number { font-size: 42px; min-width: 64px; }
+}

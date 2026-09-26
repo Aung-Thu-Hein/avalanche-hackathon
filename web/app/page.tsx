@@ -1,16 +1,19 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { TipJarCard } from "@/components/TipJarCard";
-import { tipJarAddress } from "@/lib/contract";
+import { SafeHoldCard } from "@/components/SafeHoldCard";
+import { safeHoldAddress } from "@/lib/contract";
 
 export default function Home() {
-  const unset = tipJarAddress === "0x0000000000000000000000000000000000000000";
+  const unset = safeHoldAddress === "0x0000000000000000000000000000000000000000";
 
   return (
     <main>
       <header>
-        <h1>TipJar</h1>
+        <div>
+          <h1>SafeHold</h1>
+          <p className="tagline">Know before you hold.</p>
+        </div>
         <ConnectButton />
       </header>
 
@@ -18,19 +21,24 @@ export default function Home() {
         <section className="card">
           <h2>Almost there</h2>
           <p>
-            Deploy the contract, then put its address in <code>web/.env.local</code> as{" "}
+            Put the deployed address in <code>web/.env.local</code> as{" "}
             <code>NEXT_PUBLIC_CONTRACT_ADDRESS</code> and restart the dev server.
           </p>
         </section>
       ) : (
-        <TipJarCard />
+        <SafeHoldCard />
       )}
 
       <footer>
         Avalanche Fuji (43113) &middot;{" "}
-        <a href={`https://testnet.snowtrace.io/address/${tipJarAddress}`} target="_blank" rel="noreferrer">
+        <a
+          href={`https://testnet.snowtrace.io/address/${safeHoldAddress}`}
+          target="_blank"
+          rel="noreferrer"
+        >
           contract
-        </a>
+        </a>{" "}
+        &middot; unlock data from Tokenomist
       </footer>
     </main>
   );

@@ -1,25 +1,33 @@
-// AUTO-GENERATED from the compiled contract. Regenerate after changing TipJar.sol:
-//   forge build && node -e "..."  (or just copy out/TipJar.sol/TipJar.json -> abi)
+// AUTO-GENERATED from out/SafeHold.sol/SafeHold.json — do not hand-edit.
+// Regenerate after changing the contract's interface.
 //
-// `as const` is REQUIRED. It is what gives wagmi full type inference on your
-// function names, arguments and return values. Drop it and everything becomes
-// `any` and you lose the autocomplete that makes this fast.
+// `as const` is REQUIRED: it is what gives wagmi full type inference on
+// function names, arguments and return values.
 
-export const tipJarAbi = [
+export const safeHoldAbi = [
   {
     "type": "constructor",
     "inputs": [
       {
-        "name": "_name",
-        "type": "string",
-        "internalType": "string"
+        "name": "_price",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "nonpayable"
   },
   {
-    "type": "receive",
-    "stateMutability": "payable"
+    "type": "function",
+    "name": "PERIOD",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -36,13 +44,19 @@ export const tipJarAbi = [
   },
   {
     "type": "function",
-    "name": "name",
-    "inputs": [],
+    "name": "isPro",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "outputs": [
       {
         "name": "",
-        "type": "string",
-        "internalType": "string"
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -62,20 +76,39 @@ export const tipJarAbi = [
   },
   {
     "type": "function",
-    "name": "tip",
-    "inputs": [
+    "name": "price",
+    "inputs": [],
+    "outputs": [
       {
-        "name": "message",
-        "type": "string",
-        "internalType": "string"
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "outputs": [],
-    "stateMutability": "payable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "tipsBy",
+    "name": "proSecondsLeft",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "proUntil",
     "inputs": [
       {
         "name": "",
@@ -86,24 +119,31 @@ export const tipJarAbi = [
     "outputs": [
       {
         "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint64",
+        "internalType": "uint64"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "totalTips",
-    "inputs": [],
-    "outputs": [
+    "name": "setPrice",
+    "inputs": [
       {
-        "name": "",
+        "name": "newPrice",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "subscribe",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -114,25 +154,44 @@ export const tipJarAbi = [
   },
   {
     "type": "event",
-    "name": "Tipped",
+    "name": "PriceChanged",
     "inputs": [
       {
-        "name": "from",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
+        "name": "oldPrice",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
       },
       {
-        "name": "message",
-        "type": "string",
+        "name": "newPrice",
+        "type": "uint256",
         "indexed": false,
-        "internalType": "string"
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Subscribed",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "until",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "paid",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -163,11 +222,6 @@ export const tipJarAbi = [
   },
   {
     "type": "error",
-    "name": "NothingSent",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "NothingToWithdraw",
     "inputs": []
   },
@@ -175,8 +229,24 @@ export const tipJarAbi = [
     "type": "error",
     "name": "TransferFailed",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "WrongPrice",
+    "inputs": [
+      {
+        "name": "sent",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "required",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   }
 ] as const;
 
-export const tipJarAddress = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ??
+export const safeHoldAddress = (process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ??
   "0x0000000000000000000000000000000000000000") as `0x${string}`;
