@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { isProAddress } from "@/lib/chain";
-import { allTokens, coverage, freeTokens, lookup, snapshotMeta } from "@/lib/tokens";
+import {
+  allTokens,
+  boardTokens,
+  coverage,
+  freeTokens,
+  lookup,
+  snapshotMeta,
+} from "@/lib/tokens";
 
 /**
  * GET /api/tokens?q=avax&address=0x…
@@ -11,6 +18,9 @@ import { allTokens, coverage, freeTokens, lookup, snapshotMeta } from "@/lib/tok
  *   404  { error }               not a token we recognise
  *
  * GET /api/tokens?address=0x…    the list: 5 free symbols, or all 92 for Pro
+ * GET /api/tokens?view=board&address=0x…
+ *                                every token as a table row; locked rows carry
+ *                                only name/symbol/market cap unless Pro
  *
  * The paywall is enforced here by reading `isPro()` from Avalanche — not from a
  * database. Gating in the browser would be bypassable in devtools; gating here
@@ -27,6 +37,10 @@ export async function GET(request: Request) {
 
   const isPro = await isProAddress(address);
   const meta = { ...snapshotMeta, coverage, isPro };
+
+  if (params.get("view") === "board") {
+    return NextResponse.json({ meta, tokens: boardTokens(isPro) });
+  }
 
   if (!q) {
     return NextResponse.json({
