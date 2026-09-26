@@ -7,6 +7,7 @@ import { formatEther } from "viem";
 import { safeHoldAbi, safeHoldAddress } from "@/lib/contract";
 import { Countdown, ScoreRing } from "@/components/Visuals";
 import { fmtDate, fmtPct } from "@/lib/format";
+import { FREE_SYMBOLS } from "@/lib/free";
 
 type Verdict = {
   score: number;
@@ -24,7 +25,14 @@ type Token = {
   verdict: Verdict;
 };
 
-const DEMO_TOKENS = ["AVAX", "GUN", "2Z"];
+type Gate =
+  | { kind: "locked"; symbol: string; name: string; message: string }
+  | { kind: "untracked"; symbol: string; name: string; message: string };
+
+type Coverage = { tracked: number; known: number; freeCount: number };
+
+// The free tier, safest to riskiest - tapping across shows the whole range.
+const DEMO_TOKENS = FREE_SYMBOLS;
 
 export function SafeHoldCard() {
   const { address, isConnected } = useAccount();
@@ -34,17 +42,38 @@ export function SafeHoldCard() {
   const [active, setActive] = useState("AVAX");
   const [token, setToken] = useState<Token | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
+  const [gate, setGate] = useState<Gate | null>(null);
+  const [coverage, setCoverage] = useState<Coverage | null>(null);
   const [loading, setLoading] = useState(false);
 
   // ---- score lookup (off-chain, from the cached snapshot) ---------------
   async function lookup(q: string) {
     setLoading(true);
     setLookupError(null);
+    setGate(null);
     setActive(q.toUpperCase());
     try {
-      const res = await fetch(`/api/tokens?q=${encodeURIComponent(q)}`);
+      // The address goes to the server, which reads isPro() from Avalanche.
+      // Gating in the browser would be bypassable in devtools.
+      const qs = new URLSearchParams({ q });
+      if (address) qs.set("address", address);
+      const res = await fetch(`/api/tokens?${qs}`);
       const json = await res.json();
-      if (!res.ok) {
+
+      if (json.meta?.coverage) setCoverage(json.meta.coverage);
+
+      if (res.status === 402 && json.locked) {
+        setToken(null);
+        setGate({ kind: "locked", symbol: json.symbol, name: json.name, message: json.message });
+      } else if (json.untracked) {
+        setToken(null);
+        setGate({
+          kind: "untracked",
+          symbol: json.symbol,
+          name: json.name,
+          message: json.message,
+        });
+      } else if (!res.ok) {
         setLookupError(json.error ?? "Lookup failed");
       } else {
         setToken(json.token);
@@ -93,7 +122,10 @@ export function SafeHoldCard() {
     if (isSuccess) {
       refetchIsPro();
       refetchSeconds();
+      // Re-run whatever was blocked, so it unlocks on screen straight away.
+      if (active) lookup(active);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuccess, refetchIsPro, refetchSeconds]);
 
   function subscribe() {
@@ -166,7 +198,41 @@ export function SafeHoldCard() {
           </button>
         </form>
 
+        {coverage && (
+          <p className="small muted coverage">
+            {isPro
+              ? `Pro — all ${coverage.tracked} tracked tokens`
+              : `Free — ${coverage.freeCount} tokens. Pro unlocks all ${coverage.tracked}.`}
+          </p>
+        )}
+
         {lookupError && <p className="err">{lookupError}</p>}
+
+        {gate?.kind === "locked" && (
+          <div className="result gate gate-locked">
+            <div className="gate-icon" aria-hidden="true">&#128274;</div>
+            <div className="gate-text">
+              <p className="result-sym">
+                {gate.symbol} <span>{gate.name}</span>
+              </p>
+              <p className="status status-watch">Pro only</p>
+              <p className="muted">{gate.message}</p>
+            </div>
+          </div>
+        )}
+
+        {gate?.kind === "untracked" && (
+          <div className="result gate gate-untracked">
+            <div className="gate-icon" aria-hidden="true">&#8212;</div>
+            <div className="gate-text">
+              <p className="result-sym">
+                {gate.symbol} <span>{gate.name}</span>
+              </p>
+              <p className="status">Not tracked yet</p>
+              <p className="muted">{gate.message}</p>
+            </div>
+          </div>
+        )}
 
         {token && v && (
           <div className={`result band-${v.band} ${loading ? "is-loading" : ""}`}>

@@ -10,7 +10,9 @@
  * snapshot: unlock dates are near-static, only the countdown moves.
  */
 
+import { FREE_SYMBOLS } from "@/lib/free";
 import snapshot from "@/data/tokens.json";
+import tokenIndex from "@/data/token-index.json";
 import { verdict, type Verdict } from "@/lib/score";
 
 export type Unlock = {
@@ -93,11 +95,12 @@ export function findToken(query: string, now = Date.now()): ScoredToken | null {
   const q = query.trim().toLowerCase();
   if (!q) return null;
   const tokens = (snapshot.tokens as RawToken[]) ?? [];
-  const hit =
-    tokens.find((t) => t.symbol.toLowerCase() === q || t.id.toLowerCase() === q) ??
-    tokens.find(
-      (t) => t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q),
-    );
+  // Exact matches only. A substring fallback made "SOL" resolve to "SOLV" -
+  // showing one token's unlock risk under another token's name, which in a
+  // product about risk is worse than returning nothing.
+  const hit = tokens.find(
+    (t) => t.symbol.toLowerCase() === q || t.id.toLowerCase() === q || t.name.toLowerCase() === q,
+  );
   return hit ? scoreToken(hit, now) : null;
 }
 
@@ -105,4 +108,76 @@ export const snapshotMeta = {
   fetchedAt: snapshot.fetchedAt as string,
   source: snapshot.source as string,
   count: ((snapshot.tokens as RawToken[]) ?? []).length,
+};
+
+// ---------------------------------------------------------------------------
+// Free tier
+// ---------------------------------------------------------------------------
+
+export { FREE_SYMBOLS } from "@/lib/free";
+
+const FREE = new Set<string>(FREE_SYMBOLS.map((s) => s.toLowerCase()));
+
+export function isFreeSymbol(symbol: string): boolean {
+  return FREE.has(symbol.toLowerCase());
+}
+
+export function freeTokens(now = Date.now()): ScoredToken[] {
+  return allTokens(now).filter((t) => isFreeSymbol(t.symbol));
+}
+
+// ---------------------------------------------------------------------------
+// Lookup
+// ---------------------------------------------------------------------------
+
+type IndexEntry = { id: string; symbol: string; name: string };
+
+/**
+ * Four distinct outcomes, because collapsing them loses the information the UI
+ * needs:
+ *   found     - we have a score
+ *   locked    - we have a score, but the caller is not Pro
+ *   untracked - Tokenomist knows this token, we have no unlock schedule for it
+ *   unknown   - not a token we have heard of
+ *
+ * "untracked" matters: returning a cheerful 82 for a token we have no data on
+ * would be telling the user it is safe when we simply do not know.
+ */
+export type LookupResult =
+  | { status: "found"; token: ScoredToken }
+  | { status: "locked"; symbol: string; name: string }
+  | { status: "untracked"; symbol: string; name: string }
+  | { status: "unknown"; query: string };
+
+function findIndexEntry(q: string): IndexEntry | null {
+  const entries = (tokenIndex.tokens as IndexEntry[]) ?? [];
+  return (
+    entries.find((t) => t.symbol.toLowerCase() === q || t.id.toLowerCase() === q) ??
+    entries.find((t) => t.name.toLowerCase() === q) ??
+    null
+  );
+}
+
+export function lookup(query: string, isPro: boolean, now = Date.now()): LookupResult {
+  const q = query.trim().toLowerCase();
+  if (!q) return { status: "unknown", query };
+
+  const scored = findToken(q, now);
+  if (scored) {
+    if (isPro || isFreeSymbol(scored.symbol)) return { status: "found", token: scored };
+    return { status: "locked", symbol: scored.symbol, name: scored.name };
+  }
+
+  const known = findIndexEntry(q);
+  if (known) return { status: "untracked", symbol: known.symbol, name: known.name };
+
+  return { status: "unknown", query };
+}
+
+export const coverage = {
+  /** tokens we hold an unlock schedule for */
+  tracked: ((snapshot.tokens as RawToken[]) ?? []).length,
+  /** tokens Tokenomist knows about at all */
+  known: (tokenIndex.count as number) ?? 0,
+  freeCount: FREE_SYMBOLS.length,
 };

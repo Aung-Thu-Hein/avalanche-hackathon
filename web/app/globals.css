@@ -263,3 +263,19 @@ code { padding: 1px 6px; border-radius: 6px; font-size: 13px; background: var(--
 @media (max-width: 480px) {
   .result-top { flex-direction: column; align-items: flex-start; }
 }
+
+/* Locked / untracked states - the upsell moment and the honest "no data" one */
+.coverage { margin: 10px 0 0; }
+
+.gate {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.gate-icon { font-size: 26px; opacity: 0.75; min-width: 40px; text-align: center; }
+.gate-text { display: grid; gap: 3px; min-width: 0; }
+.gate-locked { border-left-color: #fbbf24; }
+.gate-untracked { border-left-color: var(--line); }
+
+/* Five free-tier tabs need to wrap on narrow screens */
+.tabs { flex-wrap: wrap; }
