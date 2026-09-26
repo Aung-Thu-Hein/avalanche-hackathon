@@ -22,7 +22,7 @@ const OUT = join(WEB_DIR, "data", "tokens.json");
 
 /**
  * Turn Tokenomist responses into the shape lib/tokens.ts reads.
- * `get(path)` returns parsed JSON; injected so this can run against samples.
+ * `get(path)` returns parsed JSON; injected so it can be stubbed in tests.
  */
 export async function buildSnapshot(ids, get, today = new Date().toISOString().slice(0, 10)) {
   const list = await get(`/v5/token/list?tokenId=${ids.map(encodeURIComponent).join(",")}`);
