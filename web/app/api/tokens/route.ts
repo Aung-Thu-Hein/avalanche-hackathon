@@ -1,24 +1,48 @@
 import { NextResponse } from "next/server";
-import { allTokens, findToken, snapshotMeta } from "@/lib/tokens";
+import { createPublicClient, http, isAddress } from "viem";
+import { avalancheFuji } from "viem/chains";
+import { allTokens, snapshotMeta, toPublic, FREE_TOKEN_IDS } from "@/lib/tokens";
+import { safeHoldAbi, safeHoldAddress } from "@/lib/contract";
+
+const client = createPublicClient({ chain: avalancheFuji, transport: http() });
 
 /**
- * GET /api/tokens        -> every token in the snapshot, riskiest first
- * GET /api/tokens?q=avax -> one token, or 404
+ * GET /api/tokens                -> every token; scores only for free tokens
+ * GET /api/tokens?address=0x...  -> full scores if that address is Pro on-chain
  *
- * Runs server-side. This is also where a live Tokenomist call would go if the
- * snapshot were ever refreshed on demand — which is why the API key belongs in
- * TOKENOMIST_API_KEY (no NEXT_PUBLIC_ prefix) and never reaches the browser.
+ * Gating happens here, server-side, so locked scores never reach the browser.
+ * Residual risk: `address` proves nothing about who is asking - someone could
+ * pass a known Pro address. Closing that needs Sign-In with Ethereum (a signed
+ * message verified here). Acceptable for a demo; noted for production.
  */
 export async function GET(request: Request) {
-  const q = new URL(request.url).searchParams.get("q");
+  const address = new URL(request.url).searchParams.get("address");
 
-  if (q) {
-    const token = findToken(q);
-    if (!token) {
-      return NextResponse.json({ error: `No token matching "${q}"` }, { status: 404 });
+  let isPro = false;
+  if (address) {
+    if (!isAddress(address)) {
+      return NextResponse.json({ error: "Invalid address" }, { status: 400 });
     }
-    return NextResponse.json({ meta: snapshotMeta, token });
+    try {
+      isPro = await client.readContract({
+        address: safeHoldAddress,
+        abi: safeHoldAbi,
+        functionName: "isPro",
+        args: [address],
+      });
+    } catch {
+      // RPC hiccup: fail closed (treat as free) rather than leaking Pro data.
+      isPro = false;
+    }
   }
 
-  return NextResponse.json({ meta: snapshotMeta, tokens: allTokens() });
+  // Soonest unlock first - the most urgent thing on the board.
+  const tokens = allTokens()
+    .sort((a, b) => (a.nextUnlock?.daysUntil ?? 9999) - (b.nextUnlock?.daysUntil ?? 9999))
+    .map((t) => toPublic(t, isPro));
+
+  return NextResponse.json({
+    meta: { ...snapshotMeta, isPro, freeCount: FREE_TOKEN_IDS.length },
+    tokens,
+  });
 }
