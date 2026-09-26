@@ -8,6 +8,7 @@ import { usePro } from "@/lib/usePro";
 import { fmtDate, fmtPct, fmtUsd } from "@/lib/format";
 import { Countdown } from "@/components/Visuals";
 import { Robot } from "@/components/Robot";
+import { Dropdown } from "@/components/Dropdown";
 
 type Meta = { isPro: boolean; count: number; coverage: { freeCount: number } };
 type SortKey = "soonest" | "risk" | "mcap";
@@ -27,6 +28,7 @@ export function TokenBoard() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
   const tableRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
 
   const pro = usePro(() => setRefresh((n) => n + 1));
 
@@ -72,6 +74,11 @@ export function TokenBoard() {
   const lockedCount = tokens.filter((t) => t.locked).length;
   const soonCount = tokens.filter((t) => !t.locked && t.nextUnlock && t.nextUnlock.daysUntil <= 7).length;
   const selected = tokens.find((t) => t.id === selectedId) ?? null;
+  // Soonest unlock the caller can actually see - the hero card.
+  const featured =
+    tokens
+      .filter((t): t is Extract<PublicToken, { locked: false }> => !t.locked && t.nextUnlock !== null)
+      .sort((a, b) => a.nextUnlock!.daysUntil - b.nextUnlock!.daysUntil)[0] ?? null;
   const firstLockedIndex = sort === "mcap" ? -1 : rows.findIndex((r) => r.locked);
 
   // ---- rows cascade in whenever the visible set changes
@@ -80,6 +87,23 @@ export function TokenBoard() {
     const els = tableRef.current.querySelectorAll(".tb-row, .tb-upsell");
     gsap.fromTo(els, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4, stagger: 0.018, ease: "power2.out" });
   }, [rows, loading]);
+
+  // ---- hero entrance: title lines rise, copy fades, card floats in
+  const heroPlayed = useRef(false);
+  useEffect(() => {
+    if (!heroRef.current || !meta || heroPlayed.current) return;
+    heroPlayed.current = true;
+    const q = gsap.utils.selector(heroRef);
+    gsap.from(q(".bh-line > span"), { yPercent: 110, duration: 1, ease: "power4.out", stagger: 0.08 });
+    gsap.from(q(".bh-fade"), { autoAlpha: 0, y: 18, duration: 0.8, delay: 0.25, stagger: 0.1, ease: "power3.out" });
+    gsap.from(q(".bh-card"), { autoAlpha: 0, y: 30, scale: 0.97, duration: 0.9, delay: 0.3, ease: "power3.out" });
+    const n = q("[data-count]")[0] as HTMLElement | undefined;
+    if (n) {
+      const c = { v: 0 };
+      const target = Number(n.dataset.count);
+      gsap.to(c, { v: target, duration: 1.4, delay: 0.4, ease: "power2.out", onUpdate: () => (n.textContent = String(Math.round(c.v))) });
+    }
+  }, [meta]);
 
   // ---- close drawer with Escape
   useEffect(() => {
@@ -98,25 +122,56 @@ export function TokenBoard() {
   return (
     <div className="board">
       {/* -------------------------------------------------------- summary */}
-      <section className="board-top">
-        <div>
-          <p className="g-mono">Unlock radar</p>
-          <h1 className="board-title">Every token. One safety score.</h1>
+      <section className="board-hero" ref={heroRef}>
+        <div className="bh-copy">
+          <p className="g-mono bh-fade">Unlock radar · Live</p>
+          <h1 className="board-title">
+            <span className="bh-line"><span>Every token.</span></span>
+            <span className="bh-line"><span className="grad">One safety score.</span></span>
+          </h1>
+          <p className="bh-sub bh-fade">
+            Unlock risk for {meta?.count ?? "every"} tokens, scored 0–100 from a daily Tokenomist snapshot.
+          </p>
+          <div className="board-stats bh-fade">
+            <div className="g-glass stat">
+              <span>Tracked</span>
+              <strong data-count={meta?.count ?? 0}>{meta?.count ?? "—"}</strong>
+            </div>
+            <div className="g-glass stat">
+              <span>Unlocking ≤ 7 days</span>
+              <strong>{meta ? (meta.isPro ? soonCount : `${soonCount}+`) : "—"}</strong>
+            </div>
+            <div className={`g-glass stat ${pro.isPro ? "stat-pro" : ""}`}>
+              <span>Your plan</span>
+              <strong>{pro.isPro ? `Pro · ${pro.daysLeft ?? 30}d` : "Free"}</strong>
+            </div>
+          </div>
         </div>
-        <div className="board-stats">
-          <div className="g-glass stat">
-            <span>Tracked</span>
-            <strong>{meta?.count ?? "—"}</strong>
-          </div>
-          <div className="g-glass stat">
-            <span>Unlocking ≤ 7 days</span>
-            <strong>{meta ? (meta.isPro ? soonCount : `${soonCount}+`) : "—"}</strong>
-          </div>
-          <div className={`g-glass stat ${pro.isPro ? "stat-pro" : ""}`}>
-            <span>Your plan</span>
-            <strong>{pro.isPro ? `Pro · ${pro.daysLeft ?? 30}d` : "Free"}</strong>
-          </div>
-        </div>
+
+        {featured && !featured.locked && featured.nextUnlock && (
+          <button
+            className={`g-glass bh-card band-${featured.verdict.band}`}
+            onClick={() => setSelectedId(featured.id)}
+          >
+            <div className="bh-card-top">
+              <div>
+                <p className="g-mono">Next unlock</p>
+                <p className="bh-card-sym">
+                  {featured.symbol} <span>{featured.name}</span>
+                </p>
+                <p className="status-pill">{featured.verdict.headline}</p>
+              </div>
+              <Robot className="bh-robot">
+                <span className="robot-num">{featured.verdict.score}</span>
+              </Robot>
+            </div>
+            <Countdown to={featured.nextUnlock.date} />
+            <p className="bh-card-foot">
+              {fmtPct(featured.nextUnlock.pctOfCirculatingBps / 100)} of circulating supply ·{" "}
+              {fmtDate(featured.nextUnlock.date)}
+            </p>
+          </button>
+        )}
       </section>
 
       {/* ------------------------------------------------------- controls */}
@@ -137,11 +192,16 @@ export function TokenBoard() {
           ))}
         </div>
         )}
-        <select className="g-select" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Sort">
-          <option value="soonest">Soonest unlock</option>
-          <option value="risk">Highest risk</option>
-          <option value="mcap">Market cap</option>
-        </select>
+        <Dropdown<SortKey>
+          label="Sort"
+          value={sort}
+          onChange={setSort}
+          options={[
+            { value: "soonest", label: "Soonest unlock" },
+            { value: "risk", label: "Highest risk" },
+            { value: "mcap", label: "Market cap" },
+          ]}
+        />
       </section>
 
       {/* ---------------------------------------------------------- table */}
@@ -177,7 +237,7 @@ export function TokenBoard() {
                   <strong>{t.symbol}</strong>
                   <small>{t.name}</small>
                 </span>
-                <span className="tag">{t.category}</span>
+                {t.category !== "Other" && <span className="tag">{t.category}</span>}
               </span>
               <span className="c-score">
                 {t.locked ? <Blur>{FAKE.score}</Blur> : <span className="score">{t.verdict.score}</span>}

@@ -45,7 +45,6 @@ export function HomeExperience({ story, preview, total, freeCount }: Props) {
       // ---- hero
       gsap.from(q(".hero-line > span"), { yPercent: 110, duration: 1.1, ease: "power4.out", stagger: 0.08 });
       gsap.from(q(".hero-fade"), { autoAlpha: 0, y: 24, duration: 0.9, delay: 0.35, stagger: 0.1, ease: "power3.out" });
-      gsap.to(q(".bob"), { y: -14, duration: 2.4, yoyo: true, repeat: -1, ease: "sine.inOut" });
       const heroNum = q(".hero-num")[0] as HTMLElement | undefined;
       if (heroNum && hero) {
         const c = { v: 0 };
@@ -262,7 +261,7 @@ export function HomeExperience({ story, preview, total, freeCount }: Props) {
           </div>
           <div className="g-glass h-plan h-plan-pro" data-reveal>
             <p className="g-mono accent">Pro</p>
-            <p className="h-price">0.05 AVAX <span>/ 30 days</span></p>
+            <p className="h-price">0.02 AVAX <span>/ 30 days</span></p>
             <ul>
               <li>All {total} tokens with full scores and unlock dates</li>
               <li>Detailed unlock timeline for every token</li>
