@@ -1,0 +1,77 @@
+{
+  "_note": "SAMPLE shaped like GET https://api.tokenomist.ai/v5/token/list?tokenId=avalanche-2,gunz,doublezero (docs: token-list/v5). Values mirror data/tokens.json; metadata, flags and dates are illustrative. Replace with a real response once the API key works.",
+  "metadata": {
+    "queryDate": "2026-09-26T03:00:00Z",
+    "credit": {
+      "used": 1,
+      "limit": 1000,
+      "resetAt": "2026-10-01T00:00:00Z"
+    }
+  },
+  "status": true,
+  "data": [
+    {
+      "id": "avalanche-2",
+      "name": "Avalanche",
+      "symbol": "AVAX",
+      "listedMethod": "INTERNAL",
+      "circulatingSupply": 443070878.32767767,
+      "marketCap": 4706277731,
+      "maxSupply": 720000000,
+      "totalLockedAmount": 165956139.44133568,
+      "tbdLockedAmount": 0,
+      "unlockedAmount": 554043860.5586643,
+      "untrackedAmount": 0,
+      "hasStandardAllocation": true,
+      "hasFundraising": true,
+      "latestFundraisingRound": "Private Sale",
+      "hasBurn": true,
+      "hasBuyback": false,
+      "hasCommittedClaim": false,
+      "websiteUrl": "https://tokenomist.ai/avalanche-2",
+      "lastUpdatedDate": "2026-09-20T00:00:00Z"
+    },
+    {
+      "id": "gunz",
+      "name": "Gunz",
+      "symbol": "GUN",
+      "listedMethod": "INTERNAL",
+      "circulatingSupply": 3494879544,
+      "marketCap": 11120891,
+      "maxSupply": 10000000000,
+      "totalLockedAmount": 5633166666,
+      "tbdLockedAmount": 0,
+      "unlockedAmount": 4366833334,
+      "untrackedAmount": 0,
+      "hasStandardAllocation": true,
+      "hasFundraising": false,
+      "latestFundraisingRound": null,
+      "hasBurn": false,
+      "hasBuyback": false,
+      "hasCommittedClaim": false,
+      "websiteUrl": "https://tokenomist.ai/gunz",
+      "lastUpdatedDate": "2026-09-20T00:00:00Z"
+    },
+    {
+      "id": "doublezero",
+      "name": "DoubleZero",
+      "symbol": "2Z",
+      "listedMethod": "INTERNAL",
+      "circulatingSupply": 3469487663.6,
+      "marketCap": 202987848,
+      "maxSupply": 10000000000,
+      "totalLockedAmount": 6530000000,
+      "tbdLockedAmount": 0,
+      "unlockedAmount": 3470000000,
+      "untrackedAmount": 0,
+      "hasStandardAllocation": true,
+      "hasFundraising": true,
+      "latestFundraisingRound": "Seed",
+      "hasBurn": false,
+      "hasBuyback": false,
+      "hasCommittedClaim": false,
+      "websiteUrl": "https://tokenomist.ai/doublezero",
+      "lastUpdatedDate": "2026-09-20T00:00:00Z"
+    }
+  ]
+}
