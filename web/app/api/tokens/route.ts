@@ -1,48 +1,81 @@
 import { NextResponse } from "next/server";
-import { createPublicClient, http, isAddress } from "viem";
-import { avalancheFuji } from "viem/chains";
-import { allTokens, snapshotMeta, toPublic, FREE_TOKEN_IDS } from "@/lib/tokens";
-import { safeHoldAbi, safeHoldAddress } from "@/lib/contract";
-
-const client = createPublicClient({ chain: avalancheFuji, transport: http() });
+import { isProAddress } from "@/lib/chain";
+import {
+  allTokens,
+  coverage,
+  freeTokens,
+  lookup,
+  snapshotMeta,
+} from "@/lib/tokens";
 
 /**
- * GET /api/tokens                -> every token; scores only for free tokens
- * GET /api/tokens?address=0x...  -> full scores if that address is Pro on-chain
+ * GET /api/tokens?q=avax&address=0x…
  *
- * Gating happens here, server-side, so locked scores never reach the browser.
- * Residual risk: `address` proves nothing about who is asking - someone could
- * pass a known Pro address. Closing that needs Sign-In with Ethereum (a signed
- * message verified here). Acceptable for a demo; noted for production.
+ *   200  { token }               a score
+ *   402  { locked: true, … }     tracked, but the caller is not Pro
+ *   404  { untracked: true, … }  we know the token, we have no unlock data
+ *   404  { error }               not a token we recognise
+ *
+ * GET /api/tokens?address=0x…    the list: 5 free symbols, or all 92 for Pro
+ *
+ * The paywall is enforced here by reading `isPro()` from Avalanche — not from a
+ * database. Gating in the browser would be bypassable in devtools; gating here
+ * means the subscription that unlocks the data is the same one anyone can
+ * verify on Snowtrace.
+ *
+ * Runs server-side, which is also why TOKENOMIST_API_KEY (no NEXT_PUBLIC_
+ * prefix) never reaches the browser.
  */
 export async function GET(request: Request) {
-  const address = new URL(request.url).searchParams.get("address");
+  const params = new URL(request.url).searchParams;
+  const q = params.get("q");
+  const address = params.get("address");
 
-  let isPro = false;
-  if (address) {
-    if (!isAddress(address)) {
-      return NextResponse.json({ error: "Invalid address" }, { status: 400 });
-    }
-    try {
-      isPro = await client.readContract({
-        address: safeHoldAddress,
-        abi: safeHoldAbi,
-        functionName: "isPro",
-        args: [address],
-      });
-    } catch {
-      // RPC hiccup: fail closed (treat as free) rather than leaking Pro data.
-      isPro = false;
-    }
+  const isPro = await isProAddress(address);
+  const meta = { ...snapshotMeta, coverage, isPro };
+
+  if (!q) {
+    return NextResponse.json({
+      meta,
+      tokens: isPro ? allTokens() : freeTokens(),
+    });
   }
 
-  // Soonest unlock first - the most urgent thing on the board.
-  const tokens = allTokens()
-    .sort((a, b) => (a.nextUnlock?.daysUntil ?? 9999) - (b.nextUnlock?.daysUntil ?? 9999))
-    .map((t) => toPublic(t, isPro));
+  const result = lookup(q, isPro);
 
-  return NextResponse.json({
-    meta: { ...snapshotMeta, isPro, freeCount: FREE_TOKEN_IDS.length },
-    tokens,
-  });
+  switch (result.status) {
+    case "found":
+      return NextResponse.json({ meta, token: result.token });
+
+    case "locked":
+      // 402 Payment Required: the resource exists, it costs a subscription.
+      return NextResponse.json(
+        {
+          meta,
+          locked: true,
+          symbol: result.symbol,
+          name: result.name,
+          message: `${result.symbol} is available on Pro. The free plan covers ${coverage.freeCount} tokens.`,
+        },
+        { status: 402 },
+      );
+
+    case "untracked":
+      return NextResponse.json(
+        {
+          meta,
+          untracked: true,
+          symbol: result.symbol,
+          name: result.name,
+          message: `${result.symbol} is not tracked yet — we have no unlock schedule for it.`,
+        },
+        { status: 404 },
+      );
+
+    default:
+      return NextResponse.json(
+        { meta, error: `No token matching "${result.query}"` },
+        { status: 404 },
+      );
+  }
 }

@@ -12,3 +12,6 @@ broadcast/
 node_modules/
 .next/
 .DS_Store
+
+# TypeScript incremental build cache - regenerates on every typecheck
+*.tsbuildinfo

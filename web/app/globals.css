@@ -435,3 +435,19 @@ button { cursor: pointer; background: none; border: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Locked / untracked states - the upsell moment and the honest "no data" one */
+.coverage { margin: 10px 0 0; }
+
+.gate {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.gate-icon { font-size: 26px; opacity: 0.75; min-width: 40px; text-align: center; }
+.gate-text { display: grid; gap: 3px; min-width: 0; }
+.gate-locked { border-left-color: #fbbf24; }
+.gate-untracked { border-left-color: var(--line); }
+
+/* Five free-tier tabs need to wrap on narrow screens */
+.tabs { flex-wrap: wrap; }
