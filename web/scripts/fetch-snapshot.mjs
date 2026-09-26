@@ -36,14 +36,20 @@ export async function buildSnapshot(ids, get, today = new Date().toISOString().s
     const t = byId.get(id);
     const events = await get(`/v5/unlock/events/${encodeURIComponent(id)}?start=${today}&pageSize=100`);
 
+    // The cliff amount is nested under `cliffUnlocks`, not on the event itself:
+    //   { unlockDate, tokenName, tokenSymbol, listedMethod, dataSource,
+    //     cliffUnlocks: { cliffAmount, cliffValue, allocationBreakdown }, ... }
+    // Reading e.cliffAmount gives undefined, which silently filtered out every
+    // event and wrote an empty `unlocks` array for every token.
     const unlocks = (events.data ?? [])
-      .filter((e) => e.unlockDate && e.cliffAmount > 0)
-      .map((e) => ({
-        date: e.unlockDate,
-        amount: e.cliffAmount,
+      .map((e) => ({ date: e.unlockDate, amount: (e.cliffUnlocks ?? {}).cliffAmount ?? 0 }))
+      .filter((u) => u.date && u.amount > 0)
+      .map((u) => ({
+        date: u.date,
+        amount: u.amount,
         // % of *circulating* supply, in bps - what the score formula expects.
         pctOfCirculatingBps:
-          t.circulatingSupply > 0 ? Math.round((e.cliffAmount / t.circulatingSupply) * 10_000) : 0,
+          t.circulatingSupply > 0 ? Math.round((u.amount / t.circulatingSupply) * 10_000) : 0,
       }))
       .sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
 
