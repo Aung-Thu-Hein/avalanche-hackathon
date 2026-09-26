@@ -67,10 +67,37 @@ export type Verdict = {
   detail: string;
 };
 
-function band(score: number): Band {
+/**
+ * Inside this many days, an unlock is close enough that "safe to hold this
+ * week" would be a false statement whatever the score says.
+ */
+export const IMMINENT_DAYS = 7;
+
+function bandFromScore(score: number): Band {
   if (score >= 70) return "safe";
   if (score >= 40) return "watch";
   return "risk";
+}
+
+/**
+ * The score measures how bad an unlock is. Whether it is *soon* is a separate
+ * question, and the two must not be collapsed: a small unlock landing today
+ * scored above 70, so the table said "Safe to hold this week" next to
+ * "unlocks today" - contradicting itself on screen.
+ *
+ * So an imminent unlock can never be branded safe, however small it is.
+ */
+function band(score: number, daysUntilUnlock: number, hasUnlock: boolean): Band {
+  const b = bandFromScore(score);
+  if (hasUnlock && daysUntilUnlock <= IMMINENT_DAYS && b === "safe") return "watch";
+  return b;
+}
+
+/** "today", "tomorrow", "in 4 days" - reads like a person wrote it. */
+function whenPhrase(days: number): string {
+  if (days <= 0) return "today";
+  if (days === 1) return "tomorrow";
+  return `in ${days} days`;
 }
 
 /**
@@ -83,9 +110,10 @@ export function verdict(
   opts: { hasUpcomingUnlock: boolean } = { hasUpcomingUnlock: true },
 ): Verdict {
   const score = computeScoreExact(inputs);
-  const b = band(score);
   const pct = inputs.unlockPercentBps / 100;
   const days = inputs.daysUntilUnlock;
+  const b = band(score, days, opts.hasUpcomingUnlock);
+  const imminent = opts.hasUpcomingUnlock && days <= IMMINENT_DAYS;
 
   if (!opts.hasUpcomingUnlock) {
     return {
@@ -104,7 +132,7 @@ export function verdict(
       detail:
         days > PROXIMITY_WINDOW_DAYS
           ? `No unlock scheduled in the next ${PROXIMITY_WINDOW_DAYS} days.`
-          : `Next unlock in ${days} days, ${fmtPct(pct)} of circulating supply.`,
+          : `Next unlock ${whenPhrase(days)}, ${fmtPct(pct)} of circulating supply.`,
     };
   }
 
@@ -112,16 +140,22 @@ export function verdict(
     return {
       score,
       band: b,
-      headline: "Watch closely",
-      detail: `${fmtPct(pct)} of circulating supply unlocks in ${days} days.`,
+      // When the unlock is days away, say so in the headline. "Watch closely"
+      // buries the one fact the reader needs.
+      headline: imminent
+        ? days <= 0
+          ? "Unlocks today"
+          : `Unlocks ${whenPhrase(days)}`
+        : "Watch closely",
+      detail: `${fmtPct(pct)} of circulating supply unlocks ${whenPhrase(days)}.`,
     };
   }
 
   return {
     score,
     band: b,
-    headline: days <= 7 ? "High risk — unlock imminent" : "High risk",
-    detail: `${fmtPct(pct)} of circulating supply unlocks in ${days} days.`,
+    headline: imminent ? "High risk — unlock imminent" : "High risk",
+    detail: `${fmtPct(pct)} of circulating supply unlocks ${whenPhrase(days)}.`,
   };
 }
 
